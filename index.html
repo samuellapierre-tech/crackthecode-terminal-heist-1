@@ -1,0 +1,534 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Terminal Heist — Niveau 1 · CrackTheCode</title>
+  <style>
+    :root{
+      --bg:#020308;
+      --panel:#050814;
+      --accent:#66f7a1;
+      --accent-soft:#27c98b;
+      --accent-alt:#00e0ff;
+      --danger:#ff4f7b;
+      --muted:#7b8b92;
+      --border:#151b24;
+      --font:"Fira Code", ui-monospace, Menlo, Consolas, monospace;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    html,body{height:100%;}
+    body{
+      background:radial-gradient(circle at top,#071117,#01030a 65%) fixed;
+      color:#e5f5eb;
+      font-family:var(--font);
+      display:flex;
+      justify-content:center;
+      align-items:flex-start;
+      padding:16px;
+    }
+    .shell{
+      width:100%;
+      max-width:1200px;
+      background:radial-gradient(circle at top,rgba(102,247,161,0.03),transparent),
+                 #020308;
+      border-radius:14px;
+      border:1px solid var(--border);
+      box-shadow:0 24px 70px rgba(0,0,0,0.95), 0 0 18px rgba(102,247,161,0.05) inset;
+      padding:14px 14px 10px;
+    }
+    .header{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:10px;
+      margin-bottom:10px;
+      font-size:11px;
+      color:var(--muted);
+    }
+    .title-block{display:flex;flex-direction:column;gap:2px;}
+    .title-main{
+      font-size:14px;
+      color:var(--accent);
+      letter-spacing:0.12em;
+      text-transform:uppercase;
+    }
+    .title-sub{
+      font-size:10px;
+      color:var(--muted);
+    }
+    .leds span{
+      display:inline-block;
+      width:7px;height:7px;
+      border-radius:50%;
+      margin-left:4px;
+      background:#111;
+      box-shadow:0 0 6px rgba(0,0,0,0.9) inset;
+    }
+    .leds span.on{
+      background:var(--accent-soft);
+      box-shadow:0 0 8px rgba(102,247,161,0.95);
+    }
+
+    .layout{
+      display:grid;
+      grid-template-columns:1.6fr 1.4fr;
+      gap:10px;
+    }
+    @media(max-width:900px){
+      .layout{grid-template-columns:1fr; height:auto;}
+    }
+
+    .terminal{
+      background:linear-gradient(to bottom,#020611,#010308);
+      border-radius:10px;
+      padding:8px;
+      border:1px solid rgba(102,247,161,0.14);
+      box-shadow:inset 0 0 16px rgba(0,0,0,0.95);
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      min-height:260px;
+      max-height:420px;
+    }
+    .term-log{
+      flex:1;
+      overflow-y:auto;
+      font-size:11px;
+      line-height:1.5;
+      padding-right:4px;
+    }
+    .term-log::-webkit-scrollbar{width:6px;}
+    .term-log::-webkit-scrollbar-thumb{
+      background:rgba(102,247,161,0.18);
+      border-radius:6px;
+    }
+    .line{white-space:pre-wrap;word-break:break-word;}
+    .sys{color:var(--accent-alt);}
+    .lyra{color:var(--accent);}
+    .err{color:var(--danger);}
+    .hint{color:var(--accent-soft);}
+    .user{color:var(--accent-soft);}
+
+    .term-input-row{
+      display:flex;
+      align-items:center;
+      gap:4px;
+      font-size:11px;
+      color:var(--accent-soft);
+      padding-top:2px;
+      border-top:1px solid rgba(102,247,161,0.14);
+    }
+    .prompt{flex-shrink:0;}
+    #cmd{
+      flex:1;
+      background:transparent;
+      border:none;
+      outline:none;
+      color:var(--accent);
+      font:inherit;
+      padding:2px 0;
+    }
+    #cmd::placeholder{color:rgba(102,247,161,0.25);}
+
+    .puzzle{
+      background:radial-gradient(circle at top,rgba(0,224,255,0.03),transparent),
+                 #020308;
+      border-radius:10px;
+      padding:8px;
+      border:1px solid rgba(0,224,255,0.16);
+      box-shadow:inset 0 0 16px rgba(0,0,0,0.96);
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      font-size:10px;
+    }
+    .puzzle-title{
+      font-size:11px;
+      color:var(--accent-alt);
+      text-transform:uppercase;
+      letter-spacing:0.08em;
+      margin-bottom:2px;
+    }
+    .puzzle-help{
+      color:var(--muted);
+      font-size:9px;
+      margin-bottom:4px;
+    }
+    .lines{
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      gap:3px;
+      margin-bottom:4px;
+    }
+    .line-item{
+      padding:4px 5px;
+      border-radius:6px;
+      border:1px solid rgba(0,224,255,0.18);
+      background:rgba(2,8,16,0.96);
+      color:#d0fdf5;
+      font-family:var(--font);
+      font-size:9px;
+      display:flex;
+      gap:4px;
+      align-items:flex-start;
+      cursor:grab;
+      user-select:none;
+      transition:background .15s,border-color .15s,transform .1s;
+    }
+    .line-item span.idx{
+      color:var(--accent-alt);
+      min-width:14px;
+      text-align:right;
+      opacity:0.7;
+    }
+    .line-item:hover{
+      background:#040e18;
+      border-color:var(--accent-alt);
+      transform:translateY(-1px);
+    }
+    .line-item.dragging{
+      opacity:0.7;
+      border-color:var(--accent);
+      background:#020b12;
+    }
+    .line-item.correct{
+      border-color:var(--accent);
+      box-shadow:0 0 6px rgba(102,247,161,0.4);
+    }
+
+    .puzzle-footer{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:4px;
+      font-size:9px;
+      color:var(--muted);
+    }
+    .btn{
+      padding:4px 8px;
+      border-radius:6px;
+      border:1px solid rgba(0,224,255,0.22);
+      background:transparent;
+      color:var(--accent-alt);
+      font-size:9px;
+      font-family:var(--font);
+      cursor:pointer;
+    }
+    .btn:hover{background:rgba(0,224,255,0.06);}
+    .btn-ghost{
+      border-style:dashed;
+      color:var(--muted);
+    }
+    .score{color:var(--accent-soft);}
+  </style>
+</head>
+<body>
+<div class="shell" id="heist-root">
+  <div class="header">
+    <div class="title-block">
+      <div class="title-main">TERMINAL HEIST — NIVEAU 1</div>
+      <div class="title-sub">
+        Remets le script Akira en ordre pour localiser un fragment de Kali. Simulation fictive CrackTheCode.
+      </div>
+    </div>
+    <div style="text-align:right">
+      <div>Node : <span style="color:var(--accent-soft)">akira-node-07</span></div>
+      <div>Guide : <span style="color:var(--accent-alt)">Lyra.exe</span></div>
+      <div class="leds"><span class="on"></span><span class="on"></span><span></span></div>
+    </div>
+  </div>
+
+  <div class="layout">
+    <!-- Terminal -->
+    <div class="terminal">
+      <div id="log" class="term-log">
+        <div class="line sys">[SYS] Connexion au node : akira-node-07</div>
+        <div class="line sys">[SYS] Chargement du kernel pédagogique...</div>
+        <div class="line sys">[SYS] Sandbox isolée. Aucune attaque réelle. Tout est scénarisé.</div>
+        <div class="line lyra">[LYRA] Bienvenue, Sam. Remets le script en ordre pour déverrouiller un fragment de Kali.</div>
+        <div class="line lyra">[LYRA] Tape <span class="hint">help</span> pour voir les commandes.</div>
+      </div>
+      <div class="term-input-row">
+        <span class="prompt">sam@akira-node-07:$</span>
+        <!-- PAS d'autofocus ici -->
+        <input id="cmd" type="text"
+               placeholder="help  ·  run  ·  decrypt  ·  scan  ·  hint"
+               autocomplete="off" spellcheck="false">
+      </div>
+    </div>
+
+    <!-- Puzzle -->
+    <div class="puzzle">
+      <div class="puzzle-title">SCRIPT À RECONSTRUIRE</div>
+      <div class="puzzle-help">
+        Glisse ou clique deux lignes pour les échanger. Quand le script te semble cohérent,
+        utilise <span class="hint">run</span> ou <span class="hint">decrypt</span> dans le terminal.
+      </div>
+      <div id="lines" class="lines"></div>
+      <div class="puzzle-footer">
+        <div>
+          <span class="score">Score : <span id="score">0</span></span> ·
+          Hints : <span id="hints">3</span>
+        </div>
+        <div>
+          <button id="btnHint" class="btn">Hint</button>
+          <button id="btnReset" class="btn btn-ghost">Reset</button>
+        </div>
+      </div>
+      <div style="font-size:9px;color:var(--muted);margin-top:2px;">
+        Objectifs : 1) Observer. 2) Remettre l'ordre logique. 3) Exécuter sans erreur pour révéler un fragment de Kali.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const LEVEL = {
+    lines: [
+      "const node = \"akira-node-07\";",
+      "log('[INIT] Connexion au node '+node+'...');",
+      "const seed = buildSeed(node, 'KALI_FRAG_01');",
+      "const hash = secureHash(seed);",
+      "if (!verifyIntegrity(hash)) {",
+      "  throw new Error('INTÉGRITÉ FAIL — Alliance détecte l\\'altération.');",
+      "}",
+      "exposeFragment('KALI_FRAG_01', hash);",
+      "log('[OK] Fragment localisé. Transmission vers Lyra.exe.');"
+    ],
+    solution: [
+      "const node = \"akira-node-07\";",
+      "log('[INIT] Connexion au node '+node+'...');",
+      "const seed = buildSeed(node, 'KALI_FRAG_01');",
+      "const hash = secureHash(seed);",
+      "if (!verifyIntegrity(hash)) {",
+      "  throw new Error('INTÉGRITÉ FAIL — Alliance détecte l\\'altération.');",
+      "}",
+      "exposeFragment('KALI_FRAG_01', hash);",
+      "log('[OK] Fragment localisé. Transmission vers Lyra.exe.');"
+    ]
+  };
+
+  const logEl = document.getElementById('log');
+  const cmdEl = document.getElementById('cmd');
+  const linesEl = document.getElementById('lines');
+  const scoreEl = document.getElementById('score');
+  const hintsEl = document.getElementById('hints');
+  const btnHint = document.getElementById('btnHint');
+  const btnReset = document.getElementById('btnReset');
+  const root = document.getElementById('heist-root');
+
+  let current = [];
+  let score = 0;
+  let hints = 3;
+  let solved = false;
+
+  function escapeHtml(str){
+    return str.replace(/[&<>'"]/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":"&#39;",'"':'&quot;'}[c];
+    });
+  }
+
+  function write(msg, cls){
+    const div = document.createElement('div');
+    div.className = 'line ' + (cls || '');
+    div.textContent = msg;
+    logEl.appendChild(div);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+  const writeSys = msg => write(msg,'sys');
+  const writeLyra = msg => write(msg,'lyra');
+  const writeErr = msg => write(msg,'err');
+  const writeUser = msg => write(msg,'user');
+
+  function addScore(v){
+    score = Math.max(0, score + v);
+    scoreEl.textContent = score;
+  }
+
+  function shuffle(arr){
+    for(let i=arr.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [arr[i],arr[j]]=[arr[j],arr[i]];
+    }
+    return arr;
+  }
+
+  function renderLines(){
+    linesEl.innerHTML = '';
+    current.forEach((txt,i)=>{
+      const el = document.createElement('div');
+      el.className = 'line-item';
+      el.draggable = true;
+      el.innerHTML = '<span class="idx">'+(i+1)+'.</span><span>'+escapeHtml(txt)+'</span>';
+
+      el.addEventListener('dragstart', e=>{
+        el.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', i.toString());
+      });
+      el.addEventListener('dragend', ()=> el.classList.remove('dragging'));
+      el.addEventListener('dragover', e=> e.preventDefault());
+      el.addEventListener('drop', e=>{
+        e.preventDefault();
+        const from = parseInt(e.dataTransfer.getData('text/plain'),10);
+        const to = Array.from(linesEl.children).indexOf(el);
+        swap(from,to);
+      });
+
+      el.addEventListener('click', ()=>{
+        const items = Array.from(linesEl.children);
+        const idx = items.indexOf(el);
+        if(linesEl._sel == null){
+          linesEl._sel = idx;
+          el.style.outline = '1px dashed var(--accent-alt)';
+        }else{
+          const from = linesEl._sel;
+          const to = idx;
+          if(items[from]) items[from].style.outline = 'none';
+          linesEl._sel = null;
+          swap(from,to);
+        }
+      });
+
+      linesEl.appendChild(el);
+    });
+
+    if(solved){
+      const items = linesEl.children;
+      for(let i=0;i<items.length;i++){
+        if(LEVEL.solution[i] === current[i]){
+          items[i].classList.add('correct');
+        }
+      }
+    }
+  }
+
+  function swap(a,b){
+    if(a===b || a<0 || b<0 || a>=current.length || b>=current.length) return;
+    const tmp = current[a];
+    current[a] = current[b];
+    current[b] = tmp;
+    renderLines();
+    writeSys("[SYS] Lignes "+(a+1)+" et "+(b+1)+" échangées.");
+    addScore(1);
+  }
+
+  function isCorrect(){
+    if(current.length !== LEVEL.solution.length) return false;
+    for(let i=0;i<LEVEL.solution.length;i++){
+      if(current[i] !== LEVEL.solution[i]) return false;
+    }
+    return true;
+  }
+
+  function useHint(){
+    if(hints <= 0){
+      writeLyra("[LYRA] Plus de hints. Tu peux le faire.");
+      return;
+    }
+    hints--;
+    hintsEl.textContent = hints;
+
+    for(let i=0;i<LEVEL.solution.length;i++){
+      if(current[i] !== LEVEL.solution[i]){
+        const wanted = LEVEL.solution[i];
+        const from = current.indexOf(wanted);
+        if(from !== -1){
+          [current[i], current[from]] = [current[from], current[i]];
+          writeLyra("[LYRA] Ligne "+(i+1)+" verrouillée. Ajuste le reste autour.");
+          renderLines();
+          addScore(-2);
+          return;
+        }
+      }
+    }
+    writeLyra("[LYRA] Tu es déjà très proche.");
+  }
+
+  function success(mode){
+    if(solved){
+      writeSys("[SYS] Fragment déjà récupéré.");
+      return;
+    }
+    solved = true;
+    addScore(15);
+    renderLines();
+    writeSys("["+mode+"] EXEC_OK — Script reconstruit correctement.");
+    writeLyra("[LYRA] Bien joué. Fragment de Kali débloqué pour la suite du récit.");
+    writeLyra("[KALI] « Je t'observe, Sam. Continue. »");
+  }
+
+  function handleCommand(raw){
+    const cmd = raw.trim();
+    if(!cmd) return;
+    writeUser("sam@akira-node-07:$ "+cmd);
+
+    const c = cmd.toLowerCase();
+
+    if(c === 'help'){
+      writeSys("Commandes : help, scan, run, decrypt, hint, reset");
+      writeSys("But : remettre les lignes dans l'ordre logique du script puis run/decrypt.");
+      addScore(1);
+    }
+    else if(c === 'scan'){
+      writeSys("[SCAN] Pense comme un dev : init → log → seed → hash → vérif → expose → log succès.");
+      addScore(1);
+    }
+    else if(c === 'hint'){
+      useHint();
+    }
+    else if(c === 'reset'){
+      init();
+      writeSys("[SYS] Puzzle réinitialisé.");
+    }
+    else if(c === 'run' || c === 'decrypt'){
+      if(isCorrect()){
+        success(c === 'run' ? 'RUN' : 'DECRYPT');
+      }else{
+        writeErr("["+c.toUpperCase()+"] EXEC_FAIL — ordre incorrect.");
+        writeLyra("[LYRA] Rien de grave. Observe mieux la logique du script.");
+        addScore(-3);
+      }
+    }
+    else{
+      writeErr("[ERR] Commande inconnue pour ce niveau. Tape 'help'.");
+      addScore(-1);
+    }
+  }
+
+  function init(){
+    current = shuffle(LEVEL.lines.slice());
+    score = 0;
+    hints = 3;
+    solved = false;
+    scoreEl.textContent = score;
+    hintsEl.textContent = hints;
+    renderLines();
+  }
+
+  // focus UNIQUEMENT quand le joueur clique dans le jeu (évite scroll auto dans Webador)
+  root.addEventListener('click', e=>{
+    if(e.target !== cmdEl){
+      setTimeout(()=>cmdEl.focus(), 10);
+    }
+  });
+
+  cmdEl.addEventListener('keydown', e=>{
+    if(e.key === 'Enter'){
+      const v = cmdEl.value;
+      cmdEl.value = '';
+      handleCommand(v);
+    }
+  });
+
+  btnHint.addEventListener('click', ()=>{ cmdEl.focus(); useHint(); });
+  btnReset.addEventListener('click', ()=>{ cmdEl.blur(); init(); });
+
+  init();
+})();
+</script>
+</body>
+</html>
